@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Oficina - Cliente</title>
+  
+  <link rel="icon" href="logo-driver-time.jpeg" type="image/jpeg">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* --- CSS GERAL --- */
+    body { font-family: Arial, sans-serif; background-color: #f3f3f3; margin: 0; padding: 0; overflow: hidden; padding-bottom: 40px; }
+    .container { max-width: 400px; margin: 50px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); opacity: 0; transition: opacity 0.5s ease-in-out; max-height: 85vh; overflow-y: auto; }
+    h2 { text-align: center; color: #003366; }
+    h3 { color: #003366; margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
+    .welcome-message { text-align: center; color: #0055cc; font-size: 1.2em; font-weight: bold; margin-bottom: 20px; margin-top: -10px; }
+    input, select, textarea, button { width: 100%; padding: 10px; margin-top: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+    .guincho-container { display: flex; align-items: center; margin-top: 15px; padding: 10px; background-color: #f7f7f7; border-radius: 5px; }
+    .guincho-container input[type="checkbox"] { width: auto; margin-right: 10px; }
+    .guincho-container label { font-weight: bold; color: #d9534f; }
+    button { background-color: #0055cc; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #003f99; }
+    #detalhesAgendamento p { margin: 5px 0; color: #333; }
+    #detalhesAgendamento p strong { color: #003366; }
+    .status-info { padding: 15px; background-color: #e6f7ff; border: 1px solid #91d5ff; border-radius: 5px; margin-top: 10px; text-align: center; font-size: 1.1em; font-weight: bold; color: #003a61; }
+    .status-info.Pendente { background-color: #fffbe6; border-color: #ffe58f; color: #ad8b00; }
+    .status-info.EmAndamento { background-color: #e6f7ff; border-color: #91d5ff; color: #0050b3; }
+    .status-info.Concluido { background-color: #f6ffed; border-color: #b7eb8f; color: #237804; }
+    .agendamento-cliente-card { border: 1px solid #ddd; border-left: 5px solid #0055cc; border-radius: 5px; padding: 15px; margin-bottom: 15px; background-color: #fff; }
+    .agendamento-cliente-card p { margin: 5px 0; }
+    .agendamento-cliente-card h3 { margin-top: 0; padding-top: 0; border-top: none; color: #003366; font-size: 1.2em; margin-bottom: 10px; }
+    .checklist-cliente-container { margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px; }
+    .checklist-cliente-container h4 { margin-top: 0; color: #003366; font-size: 1.1em; }
+    .checklist-cliente-container ul { list-style-type: none; padding-left: 0; }
+    .checklist-cliente-container li { margin-bottom: 8px; font-size: 0.9em; }
+    .checklist-cliente-container .status-ok { color: #28a745; font-weight: bold; }
+    .checklist-cliente-container .status-avaria { color: #dc3545; font-weight: bold; }
+    .checklist-cliente-container .obs { color: #555; display: block; margin-left: 10px; font-style: italic;}
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: white; padding: 30px; border-radius: 8px; width: 400px; max-width: 90%; max-height: 80%; overflow-y: auto; }
+    .modal-content h3 { margin-top: 0; color: #003366; }
+    .modal-content textarea { width: 100%; height: 120px; resize: vertical; }
+    .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .modal-buttons button { width: auto; margin-top: 0; }
+    .modal-content button { background-color: #0055cc; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 5px; }
+    .modal-content .btn-cancelar { background-color: #dc3545; }
+    .btn-feedback { background-color: #28a745; color: white; border: none; padding: 8px 12px; margin-top: 10px; cursor: pointer; border-radius: 5px; font-size: 0.9em; width: auto; }
+    .btn-feedback:hover { background-color: #218838; }
+    .btn-chat-cliente { background-color: #007bff !important; margin-top: 10px; position: relative; }
+    .btn-chat-cliente:hover { background-color: #0056b3 !important; }
+    .logo-login { display: block; margin: 0 auto 15px auto; width: 100%; max-width: 100%; height: auto; }
+    .link-recuperar { display: block; text-align: center; margin-top: 10px; color: #0055cc; text-decoration: none; font-size: 0.9em; cursor: pointer; }
+    .link-recuperar:hover { text-decoration: underline; }
+    
+    /* Splash Screen */
+    #splash-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #000000; display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 1; visibility: visible; transition: opacity 1s ease-out, visibility 1s; }
+    #splash-logo { width: 100%; border-radius: 20px; opacity: 0; animation: fade-in 1.5s forwards, pulsate 1.5s 1.5s infinite alternate; }
+    @keyframes fade-in { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+    @keyframes pulsate { from { transform: scale(1); } to { transform: scale(1.05); } }
+
+    /* --- CSS CHAT --- */
+    #chat-area { height: 300px; border: 1px solid #ddd; border-radius: 5px; padding: 10px; overflow-y: scroll; background-color: #f9f9f9; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px; }
+    .mensagem-chat { max-width: 80%; padding: 8px 12px; border-radius: 10px; font-size: 0.9em; line-height: 1.4; }
+    .msg-cliente { align-self: flex-end; background-color: #0055cc; color: white; border-bottom-right-radius: 2px; }
+    .msg-funcionario { align-self: flex-start; background-color: #e0e0e0; color: #333; border-bottom-left-radius: 2px; }
+    .msg-time { display: block; font-size: 0.7em; margin-top: 4px; opacity: 0.8; text-align: right; }
+    .chat-controls { display: flex; gap: 5px; }
+    .chat-controls input { margin-top: 0; }
+    .chat-controls button { width: auto; margin-top: 0; background-color: #28a745; }
+
+    /* --- CSS PARA A TABELA DE PREÇOS DO CLIENTE --- */
+    .tabela-precos-cliente { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+    .tabela-precos-cliente th, .tabela-precos-cliente td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 0.9em; }
+    .tabela-precos-cliente th { background-color: #f2f2f2; color: #003366; }
+    .tabela-precos-cliente tr:nth-child(even) { background-color: #f9f9f9; }
+
+    /* --- CSS DO BADGE DE NOTIFICAÇÃO --- */
+    .badge-notification {
+        background-color: #dc3545;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 0.75em;
+        position: absolute;
+        top: 5px;
+        right: 10px;
+        font-weight: bold;
+        display: none;
+        box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    }
+    
+    /* --- CSS DO RODAPÉ --- */
+    .dev-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: #e0e0e0;
+        color: #555;
+        text-align: center;
+        padding: 10px 0;
+        font-size: 0.85em;
+        border-top: 1px solid #ccc;
+        z-index: 999;
+    }
+    .dev-footer a {
+        color: #0055cc;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    .dev-footer a:hover {
+        text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  
+  <div id="splash-screen">
+    <img src="logo-driver-time.jpeg" alt="Logo Driver Time" id="splash-logo">
+  </div>
+    
+  <div class="container" id="login">
+    <img src="logo oficina.jpeg" alt="Logo Oficina" class="logo-login">
+    <h2>Login</h2>
+    <input type="email" id="loginEmail" placeholder="E-mail">
+    <input type="password" id="loginSenha" placeholder="Senha">
+    <button onclick="fazerLogin()">Entrar</button>
+    <a class="link-recuperar" onclick="mostrar('recuperarSenha')">Esqueceu a senha?</a>
+    <button onclick="mostrar('cadastro')" style="margin-top:10px; background-color: #777;">Cadastrar-se</button>
+  </div>
+
+  <div class="container" id="cadastro" style="display: none;">
+    <h2>Cadastro</h2>
+    <input type="text" id="nomeCadastro" placeholder="Nome completo">
+    <input type="email" id="emailCadastro" placeholder="E-mail">
+    <input type="tel" id="telefoneCadastro" placeholder="Telefone">
+    <input type="password" id="senhaCadastro" placeholder="Senha">
+    <input type="password" id="confirmarSenhaCadastro" placeholder="Confirmar Senha">
+    <button onclick="salvarCadastro()">Cadastrar</button>
+    <button onclick="mostrar('login')" style="margin-top:10px; background-color: #777;">Voltar</button>
+  </div>
+  
+  <div class="container" id="recuperarSenha" style="display: none;">
+    <h2>Recuperar Acesso</h2>
+    <p style="text-align: center; color: #666;">Digite o e-mail cadastrado para visualizar sua senha.</p>
+    <input type="email" id="emailRecuperacaoCliente" placeholder="E-mail cadastrado">
+    <button onclick="recuperarSenhaCliente()">Recuperar Senha</button>
+    <button onclick="mostrar('login')" style="margin-top:10px; background-color: #777;">Voltar</button>
+  </div>
+
+  <div class="container" id="agendamento" style="display: none;">
+    <div id="msgBemVindo" class="welcome-message"></div>
+    <h2>Novo Agendamento</h2>
+    <input type="text" id="clienteAgendamento" placeholder="Nome do Cliente (como em seu cadastro)">
+    <input type="text" id="veiculoAgendamento" placeholder="Modelo do Veículo">
+    <input type="text" id="placaAgendamento" placeholder="Placa" maxlength="7" style="text-transform: uppercase;">
+    <input type="number" id="kmAgendamento" placeholder="Quilometragem (KM)">
+    
+    <select id="tipoVeiculoAgendamento">
+      <option value="">Escolha o Tamanho do Carro</option>
+      <option value="pequeno">Carro Pequeno (Hatch/Sedan)</option>
+      <option value="grande">Carro Grande (SUV/Pickup)</option>
+    </select>
+    <select id="servicoAgendamento">
+      <option value="">Escolha o Serviço</option>
+    </select>
+    <input type="date" id="dataAgendamento">
+    <input type="time" id="horaAgendamento" min="07:00" max="18:00">
+    <textarea id="obsAgendamento" placeholder="Observações" rows="4" style="resize: vertical;"></textarea>
+    <div class="guincho-container">
+      <input type="checkbox" id="solicitarGuincho">
+      <label for="solicitarGuincho">Preciso de um guincho</label>
+    </div>
+    <button onclick="salvarAgendamento()">Agendar</button>
+    
+    <button onclick="abrirModalPrecos()" style="margin-top:10px; background-color: #6f42c1;">Ver Tabela de Preços</button>
+    
+    <button onclick="mostrar('statusRevisao')" style="margin-top:10px; background-color: #0077cc;">Ver Meus Agendamentos</button>
+    <button onclick="abrirChat()" class="btn-chat-cliente">
+        Falar com Suporte 
+        <span class="badge-notification badge-cliente">0</span>
+    </button>
+    <button onclick="mostrar('login')" style="margin-top:10px; background-color: #777;">Sair</button>
+  </div>
+  
+  <div class="container" id="posAgendamento" style="display: none;">
+    <h2>Agendamento Confirmado!</h2>
+    <div id="detalhesAgendamento"></div>
+    <button onclick="mostrar('statusRevisao')" style="margin-top:10px; background-color: #0077cc;">Ver Status das Minhas Revisões</button>
+    <button onclick="abrirChat()" class="btn-chat-cliente">
+        Falar com Suporte
+        <span class="badge-notification badge-cliente">0</span>
+    </button>
+    <button onclick="mostrar('login')" style="margin-top:10px; background-color: #777;">Sair</button>
+  </div>
+
+  <div class="container" id="statusRevisao" style="display: none;">
+    <div id="msgBemVindoStatus" class="welcome-message"></div>
+    
+    <h2>Status das Suas Revisões</h2>
+    <h3 style="margin-top: 10px; padding-top: 10px; border-top: none;">Resumo de Serviços</h3>
+    <p style="font-size: 0.9em; color: #666; text-align: center; margin-top: -10px; margin-bottom: 15px;">(Inclui serviços agendados e concluídos)</p>
+    <div style="width: 100%; max-width: 380px; margin: auto;">
+        <canvas id="graficoHistorico"></canvas>
+    </div>
+    <h3 style="margin-top: 30px;">Detalhes dos Agendamentos</h3>
+    <div id="listaStatusRevisao">
+      <p>Nenhum agendamento encontrado para este cliente.</p>
+    </div>
+    <button onclick="mostrar('agendamento')" style="margin-top: 20px;">Fazer Novo Agendamento</button>
+    <button onclick="abrirChat()" class="btn-chat-cliente">
+        Falar com Suporte
+        <span class="badge-notification badge-cliente">0</span>
+    </button>
+    <button onclick="mostrar('login')" style="margin-top: 10px; background-color: #777;">Voltar ao Login / Sair</button>
+  </div>
+
+  <div class="dev-footer">
+      Contato do Desenvolvedor: <a href="mailto:warlysson832@gmail.com">warlysson832@gmail.com</a>
+  </div>
+
+  <div class="modal-overlay" id="modal-feedback">
+    <div class="modal-content">
+      <h3 id="feedback-modal-titulo">Deixe seu Feedback</h3>
+      <p>Conte-nos como foi sua experiência com o serviço:</p>
+      <input type="hidden" id="feedback-agendamento-id">
+      <textarea id="feedbackTextoModal" placeholder="Escreva seu feedback..." rows="5"></textarea>
+      <div class="modal-buttons">
+        <button onclick="salvarFeedback()">Enviar Feedback</button>
+        <button onclick="fecharModalFeedback()" class="btn-cancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-chat">
+    <div class="modal-content" style="width: 380px;">
+      <h3>Chat com Suporte</h3>
+      <div id="chat-area">
+          </div>
+      <div class="chat-controls">
+          <input type="text" id="inputChatCliente" placeholder="Digite sua mensagem...">
+          <button onclick="enviarMensagemChat()">Enviar</button>
+      </div>
+      <button onclick="fecharChat()" class="btn-cancelar" style="margin-top: 10px; width: 100%;">Fechar Chat</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-tabela-precos">
+    <div class="modal-content" style="width: 600px;">
+      <h3>Tabela de Preços Referencial</h3>
+      <div style="max-height: 400px; overflow-y: auto;">
+          <table class="tabela-precos-cliente">
+              <thead>
+                  <tr>
+                      <th>Serviço</th>
+                      <th>Pequeno (R$)</th>
+                      <th>Grande (R$)</th>
+                  </tr>
+              </thead>
+              <tbody id="corpo-tabela-precos-cliente">
+                  </tbody>
+          </table>
+      </div>
+      <button onclick="fecharModalPrecos()" style="margin-top: 15px; width: 100%;">Fechar</button>
+    </div>
+  </div>
+    
+  
+  <script>
+    let clienteLogadoEmail = '';
+    let clienteLogadoNome = '';
+    let meuGrafico = null; 
+    let servicosPrecos = {};
+
+    const precosPadrao = {
+        "Troca de Óleo": { pequeno: 150.00, grande: 250.00 },
+        "Revisão Geral": { pequeno: 450.00, grande: 700.00 },
+        "Alinhamento e Balanceamento": { pequeno: 120.00, grande: 180.00 },
+        "Manutenção de Freios": { pequeno: 200.00, grande: 350.00 },
+        "Inspeção Veicular": { pequeno: 100.00, grande: 150.00 },
+        "Troca de Pneus (Unidade)": { pequeno: 50.00, grande: 80.00 },
+        "Rodízio de Pneus": { pequeno: 60.00, grande: 90.00 },
+        "Suspensão (Troca Amortecedores)": { pequeno: 400.00, grande: 650.00 },
+        "Sistema de Arrefecimento": { pequeno: 180.00, grande: 280.00 },
+        "Troca de Correia Dentada": { pequeno: 300.00, grande: 500.00 },
+        "Injeção Eletrônica (Limpeza)": { pequeno: 150.00, grande: 220.00 },
+        "Elétrica Geral (Verificação)": { pequeno: 120.00, grande: 180.00 },
+        "Bateria (Troca e Verificação)": { pequeno: 80.00, grande: 120.00 },
+        "Ar Condicionado (Carga de Gás)": { pequeno: 250.00, grande: 350.00 },
+        "Ar Condicionado (Higienização)": { pequeno: 100.00, grande: 150.00 },
+        "Escapamento (Verificação)": { pequeno: 70.00, grande: 100.00 },
+        "Troca de Embreagem": { pequeno: 500.00, grande: 800.00 },
+        "Câmbio Manual (Revisão)": { pequeno: 250.00, grande: 400.00 },
+        "Câmbio Automático (Troca Fluido)": { pequeno: 600.00, grande: 950.00 },
+        "Funilaria (Orçamento)": { pequeno: 0.00, grande: 0.00 },
+        "Pintura (Orçamento)": { pequeno: 0.00, grande: 0.00 },
+        "Polimento e Cristalização": { pequeno: 300.00, grande: 500.00 },
+        "Martelinho de Ouro (Por Peça)": { pequeno: 150.00, grande: 250.00 },
+        "Instalação de Acessórios": { pequeno: 100.00, grande: 150.00 },
+        "Laudo Cautelar": { pequeno: 180.00, grande: 250.00 },
+        "Troca de Velas": { pequeno: 90.00, grande: 140.00 },
+        "Troca de Filtro de Ar": { pequeno: 50.00, grande: 80.00 },
+        "Troca de Filtro de Combustível": { pequeno: 60.00, grande: 90.00 },
+        "Troca de Filtro de Cabine": { pequeno: 70.00, grande: 100.00 },
+        "Verificação de Vazamentos": { pequeno: 100.00, grande: 160.00 }
+    };
+
+    function inicializarPrecos() {
+        const precosSalvos = localStorage.getItem('tabelaPrecos');
+        if (precosSalvos) {
+            servicosPrecos = JSON.parse(precosSalvos);
+        } else {
+            servicosPrecos = JSON.parse(JSON.stringify(precosPadrao));
+            localStorage.setItem('tabelaPrecos', JSON.stringify(servicosPrecos));
+        }
+    }
+
+    function popularServicos() {
+        inicializarPrecos(); 
+        const selectServico = document.getElementById('servicoAgendamento');
+        while (selectServico.options.length > 1) {
+            selectServico.remove(1);
+        }
+        const servicosOrdenados = Object.keys(servicosPrecos).sort();
+        for (const servicoNome of servicosOrdenados) {
+            const option = document.createElement('option');
+            option.value = servicoNome;
+            option.textContent = servicoNome;
+            selectServico.appendChild(option);
+        }
+    }
+
+    function abrirModalPrecos() {
+        inicializarPrecos(); 
+        const tbody = document.getElementById('corpo-tabela-precos-cliente');
+        tbody.innerHTML = '';
+        
+        const servicosOrdenados = Object.keys(servicosPrecos).sort();
+
+        servicosOrdenados.forEach(servico => {
+            const precos = servicosPrecos[servico];
+            tbody.innerHTML += `
+                <tr>
+                    <td>${servico}</td>
+                    <td>R$ ${precos.pequeno.toFixed(2)}</td>
+                    <td>R$ ${precos.grande.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+        
+        document.getElementById('modal-tabela-precos').style.display = 'flex';
+    }
+
+    function fecharModalPrecos() {
+        document.getElementById('modal-tabela-precos').style.display = 'none';
+    }
+
+    function mostrar(tela) {
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('cadastro').style.display = 'none';
+      document.getElementById('recuperarSenha').style.display = 'none';
+      document.getElementById('agendamento').style.display = 'none';
+      document.getElementById('posAgendamento').style.display = 'none';
+      document.getElementById('statusRevisao').style.display = 'none';
+      
+      const container = document.getElementById(tela);
+      container.style.display = 'block';
+      
+      if(tela !== 'login') container.style.opacity = '1'; 
+
+      if (tela === 'statusRevisao') {
+          if (clienteLogadoNome) {
+             document.getElementById('msgBemVindoStatus').textContent = `Bem-vindo(a), ${clienteLogadoNome}!`;
+          }
+          carregarStatusRevisaoCliente();
+      }
+      
+      if (tela === 'agendamento') {
+          if (clienteLogadoNome) {
+              document.getElementById('clienteAgendamento').value = clienteLogadoNome;
+              const msgElement = document.getElementById('msgBemVindo');
+              if (msgElement) msgElement.textContent = `Bem-vindo(a), ${clienteLogadoNome}!`;
+          }
+          const hoje = new Date().toISOString().split('T')[0];
+          document.getElementById('dataAgendamento').setAttribute('min', hoje);
+          popularServicos(); 
+          let veiculosSalvos = JSON.parse(localStorage.getItem('veiculosSalvos')) || {};
+          if (veiculosSalvos[clienteLogadoEmail]) {
+              const veiculoSalvo = veiculosSalvos[clienteLogadoEmail];
+              document.getElementById('veiculoAgendamento').value = veiculoSalvo.veiculo;
+              document.getElementById('placaAgendamento').value = veiculoSalvo.placa;
+          } else {
+              document.getElementById('veiculoAgendamento').value = '';
+              document.getElementById('placaAgendamento').value = '';
+          }
+          // Limpa o campo KM ao abrir novo agendamento
+          document.getElementById('kmAgendamento').value = '';
+
+          document.getElementById('tipoVeiculoAgendamento').value = '';
+          document.getElementById('servicoAgendamento').value = '';
+      }
+      
+      if (tela === 'login') {
+          localStorage.removeItem('clienteSessao');
+          clienteLogadoEmail = '';
+          clienteLogadoNome = '';
+      }
+      
+      atualizarBadgeCliente();
+    }
+
+    function salvarCadastro() {
+      const nome = document.getElementById('nomeCadastro').value.trim();
+      const email = document.getElementById('emailCadastro').value.trim();
+      const telefone = document.getElementById('telefoneCadastro').value.trim();
+      const senha = document.getElementById('senhaCadastro').value;
+      const confirmarSenha = document.getElementById('confirmarSenhaCadastro').value;
+      if (!nome || !email || !telefone || !senha || !confirmarSenha) { alert('Preencha todos os campos.'); return; }
+      if (senha !== confirmarSenha) { alert('As senhas não coincidem!'); return; }
+      let usuarios = JSON.parse(localStorage.getItem('usuariosCadastrados')) || [];
+      if (usuarios.find(u => u.email === email)) { alert('E-mail já cadastrado.'); return; }
+      usuarios.push({ nome, email, telefone, senha });
+      localStorage.setItem('usuariosCadastrados', JSON.stringify(usuarios));
+      alert('Cadastro realizado com sucesso!');
+      mostrar('login');
+      document.getElementById('nomeCadastro').value = ''; document.getElementById('emailCadastro').value = '';
+      document.getElementById('telefoneCadastro').value = ''; document.getElementById('senhaCadastro').value = ''; document.getElementById('confirmarSenhaCadastro').value = '';
+    }
+
+    function fazerLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const senha = document.getElementById('loginSenha').value;
+      const usuarios = JSON.parse(localStorage.getItem('usuariosCadastrados')) || [];
+      const usuarioEncontrado = usuarios.find(u => u.email === email && u.senha === senha);
+      if (usuarioEncontrado) {
+        alert('Login realizado com sucesso!');
+        clienteLogadoEmail = email;
+        clienteLogadoNome = usuarioEncontrado.nome;
+        localStorage.setItem('clienteSessao', JSON.stringify({ email: email, nome: usuarioEncontrado.nome }));
+        document.getElementById('msgBemVindo').textContent = `Bem-vindo(a), ${clienteLogadoNome}!`;
+        mostrar('agendamento');
+        document.getElementById('loginEmail').value = ''; document.getElementById('loginSenha').value = '';
+      } else { alert('E-mail ou senha inválidos.'); }
+    }
+
+    function recuperarSenhaCliente() {
+        const email = document.getElementById('emailRecuperacaoCliente').value.trim();
+        const usuarios = JSON.parse(localStorage.getItem('usuariosCadastrados')) || [];
+        const usuario = usuarios.find(u => u.email === email);
+        if (usuario) { alert(`Olá, ${usuario.nome}.\nSua senha é: ${usuario.senha}`); mostrar('login'); }
+        else { alert("E-mail não encontrado."); }
+    }
+
+    function salvarAgendamento() {
+      const clienteNomeInput = document.getElementById('clienteAgendamento').value.trim();
+      const veiculo = document.getElementById('veiculoAgendamento').value.trim();
+      const placa = document.getElementById('placaAgendamento').value.trim().toUpperCase(); 
+      const km = document.getElementById('kmAgendamento').value.trim(); 
+      const tipoVeiculo = document.getElementById('tipoVeiculoAgendamento').value; 
+      const servico = document.getElementById('servicoAgendamento').value;
+      const data = document.getElementById('dataAgendamento').value;
+      const hora = document.getElementById('horaAgendamento').value;
+      const observacoes = document.getElementById('obsAgendamento').value.trim();
+      const precisaGuincho = document.getElementById('solicitarGuincho').checked;
+      
+      if (!clienteNomeInput || !tipoVeiculo || !servico || !data || !hora) { alert('Preencha os campos obrigatórios.'); return; }
+      if (placa && placa.length < 7) { alert('Placa inválida.'); return; }
+
+      const servicoInfo = servicosPrecos[servico];
+      const precoServico = parseFloat(servicoInfo[tipoVeiculo]); 
+      
+      if (veiculo && placa) {
+          let veiculosSalvos = JSON.parse(localStorage.getItem('veiculosSalvos')) || {};
+          veiculosSalvos[clienteLogadoEmail] = { veiculo: veiculo, placa: placa };
+          localStorage.setItem('veiculosSalvos', JSON.stringify(veiculosSalvos));
+      }
+
+      const agendamento = {
+        id: Date.now(),
+        clienteEmail: clienteLogadoEmail,
+        cliente: clienteNomeInput,
+        veiculo: veiculo, placa: placa, 
+        km: km, 
+        tipoVeiculo: tipoVeiculo, servico: servico,
+        preco: precoServico, data: data, hora: hora, observacoes: observacoes,
+        status: 'Pendente', precisaGuincho: precisaGuincho, checklist: null, feedbackEnviado: false 
+      };
+      
+      let agendamentos = JSON.parse(localStorage.getItem('agendamentos')) || [];
+      agendamentos.push(agendamento);
+      localStorage.setItem('agendamentos', JSON.stringify(agendamentos));
+      
+      const obsHtml = agendamento.observacoes ? `<p><strong>Observações:</strong> ${agendamento.observacoes}</p>` : '';
+      const kmHtml = agendamento.km ? `<p><strong>Quilometragem:</strong> ${agendamento.km} km</p>` : '';
+      
+      document.getElementById('detalhesAgendamento').innerHTML = `
+            <p><strong>Cliente:</strong> ${agendamento.cliente}</p>
+            <p><strong>Serviço:</strong> ${agendamento.servico}</p>
+            <p><strong>Preço:</strong> R$ ${agendamento.preco.toFixed(2)}</p>
+            <p><strong>Data:</strong> ${agendamento.data.split('-').reverse().join('/')} às ${agendamento.hora}</p>
+            ${kmHtml}
+            ${obsHtml}
+        `;
+      mostrar('posAgendamento');
+      
+      document.getElementById('servicoAgendamento').value = ''; document.getElementById('tipoVeiculoAgendamento').value = '';
+      document.getElementById('dataAgendamento').value = ''; document.getElementById('horaAgendamento').value = '';
+      document.getElementById('obsAgendamento').value = ''; document.getElementById('solicitarGuincho').checked = false; 
+      document.getElementById('kmAgendamento').value = '';
+    }
+
+    function salvarFeedback() {
+      const texto = document.getElementById('feedbackTextoModal').value.trim();
+      const agendamentoId = parseInt(document.getElementById('feedback-agendamento-id').value);
+      
+      if (!texto) { alert('Escreva um feedback.'); return; }
+      
+      let historico = JSON.parse(localStorage.getItem('servicosHistorico')) || [];
+      const servicoIndex = historico.findIndex(s => s.id === agendamentoId);
+      
+      if (servicoIndex !== -1) {
+          historico[servicoIndex].feedbackEnviado = true;
+          localStorage.setItem('servicosHistorico', JSON.stringify(historico));
+          
+          const feedback = { 
+              texto: texto, 
+              data: new Date().toISOString(), 
+              clienteEmail: clienteLogadoEmail, 
+              servicoId: agendamentoId, 
+              servicoNome: historico[servicoIndex].servico 
+          };
+          
+          let feedbacks = JSON.parse(localStorage.getItem('feedbacks')) || [];
+          feedbacks.push(feedback);
+          localStorage.setItem('feedbacks', JSON.stringify(feedbacks));
+          
+          alert('Obrigado pelo seu feedback!');
+          fecharModalFeedback();
+          carregarStatusRevisaoCliente(); 
+      } else {
+          alert('Erro ao identificar o serviço. Tente novamente.');
+      }
+    }
+
+    function abrirModalFeedback(id, nome) {
+        document.getElementById('feedback-agendamento-id').value = id;
+        document.getElementById('feedback-modal-titulo').textContent = `Feedback para: ${nome}`;
+        document.getElementById('feedbackTextoModal').value = ''; 
+        document.getElementById('modal-feedback').style.display = 'flex';
+    }
+    function fecharModalFeedback() { document.getElementById('modal-feedback').style.display = 'none'; }
+
+    function gerarItemChecklist(nome, item) {
+        if (!item) return '';
+        const statusClass = item.status === 'OK' ? 'status-ok' : 'status-avaria';
+        return `<li><strong>${nome}:</strong> <span class="${statusClass}">${item.status}</span> ${item.obs ? `<span class="obs">Obs: ${item.obs}</span>` : ''}</li>`;
+    }
+
+   function carregarStatusRevisaoCliente() {
+    if (!clienteLogadoEmail) return;
+
+    const todosAgendamentos = JSON.parse(localStorage.getItem('agendamentos')) || [];
+    const historicoConcluido = JSON.parse(localStorage.getItem('servicosHistorico')) || [];
+
+    const servicos = [...todosAgendamentos, ...historicoConcluido]
+        .filter(ag => ag.clienteEmail === clienteLogadoEmail);
+
+    const div = document.getElementById('listaStatusRevisao');
+    div.innerHTML = '';
+
+    renderizarGraficoHistorico(servicos);
+
+    if (servicos.length === 0) {
+        div.innerHTML = '<p>Você não possui agendamentos.</p>';
+        return;
+    }
+
+    servicos.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+    servicos.forEach(ag => {
+        let statusTexto =
+            ag.status === 'Pendente' ? 'Agendado' :
+            (ag.status === 'Concluido' ? 'Concluído' : ag.status);
+
+        let feedbackHtml = '';
+        if (ag.status === 'Concluido') {
+            if (!ag.feedbackEnviado) {
+                feedbackHtml = `<button class="btn-feedback" onclick="abrirModalFeedback(${ag.id}, '${ag.servico}')">Deixar Feedback</button>`;
+            } else {
+                feedbackHtml = `<p style="font-size: .9em; color: #28a745; margin-top: 10px;">✓ Feedback enviado</p>`;
+            }
+        }
+
+        let checklistHtml = '';
+        if (ag.checklist && ag.checklist.realizado) {
+            checklistHtml = `
+                <div class="checklist-cliente-container">
+                    <h4>Checklist do Veículo</h4>
+                    <ul>
+                        ${gerarItemChecklist('Frente', ag.checklist.frente)}
+                        ${gerarItemChecklist('Traseira', ag.checklist.traseira)}
+                        ${gerarItemChecklist('Lado Motorista', ag.checklist.motorista)}
+                        ${gerarItemChecklist('Lado Passageiro', ag.checklist.passageiro)}
+                        ${gerarItemChecklist('Motor', ag.checklist.motor)}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        const obsDisplay = ag.observacoes ? `<p style="margin-top:8px; font-style:italic; color:#555;"><strong>Sua observação:</strong> ${ag.observacoes}</p>` : '';
+        const kmDisplay = ag.km ? ` - ${ag.km} km` : '';
+        const valorDisplay = ag.preco ? `<p><strong>Valor:</strong> R$ ${ag.preco.toFixed(2)}</p>` : '';
+
+        div.innerHTML += `
+            <div class="agendamento-cliente-card">
+                <h3>${ag.servico}</h3>
+
+                <p><strong>Veículo:</strong> ${ag.veiculo || 'N/A'} - ${ag.placa || ''}${kmDisplay}</p>
+                ${valorDisplay}
+                <p><strong>Data:</strong> ${ag.data.split('-').reverse().join('/')} às ${ag.hora}</p>
+                ${obsDisplay}
+
+                <div class="status-info ${ag.status.replace(/\s/g, '')}">
+                    Status: ${statusTexto}
+                </div>
+
+                ${checklistHtml}
+                ${feedbackHtml}
+            </div>
+        `;
+    });
+}
+
+    function renderizarGraficoHistorico(servicos) {
+        const ctx = document.getElementById('graficoHistorico').getContext('2d');
+        const contagem = {};
+        servicos.forEach(s => { contagem[s.servico] = (contagem[s.servico] || 0) + 1; });
+        if (meuGrafico) meuGrafico.destroy();
+        meuGrafico = new Chart(ctx, {
+            type: 'pie', 
+            data: { labels: Object.keys(contagem), datasets: [{ data: Object.values(contagem), backgroundColor: ['#0055CC', '#28A745', '#FFC107', '#DC3545', '#17A2B8'] }] },
+            options: { plugins: { legend: { position: 'top' }, title: { display: false } } }
+        });
+    }
+    
+    // --- CHAT ---
+    function abrirChat() {
+        if (!clienteLogadoEmail) { alert("Faça login para acessar o chat."); return; }
+        document.getElementById('modal-chat').style.display = 'flex';
+        
+        // Marcar mensagens como lidas ao abrir
+        marcarMensagensComoLidas();
+        
+        renderizarMensagensChat();
+    }
+    
+    function marcarMensagensComoLidas() {
+        let todasMensagens = JSON.parse(localStorage.getItem('chatMessages')) || {};
+        let minhasMensagens = todasMensagens[clienteLogadoEmail] || [];
+        
+        let houveMudanca = false;
+        minhasMensagens.forEach(msg => {
+            if (msg.sender === 'funcionario' && !msg.lida) {
+                msg.lida = true;
+                houveMudanca = true;
+            }
+        });
+        
+        if (houveMudanca) {
+            localStorage.setItem('chatMessages', JSON.stringify(todasMensagens));
+            atualizarBadgeCliente();
+        }
+    }
+
+    function fecharChat() {
+        document.getElementById('modal-chat').style.display = 'none';
+    }
+
+    function renderizarMensagensChat() {
+        const chatArea = document.getElementById('chat-area');
+        chatArea.innerHTML = '';
+        
+        let todasMensagens = JSON.parse(localStorage.getItem('chatMessages')) || {};
+        let minhasMensagens = todasMensagens[clienteLogadoEmail] || [];
+
+        if (minhasMensagens.length === 0) {
+            chatArea.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Inicie a conversa com o suporte.</p>';
+        } else {
+            minhasMensagens.forEach(msg => {
+                const div = document.createElement('div');
+                div.classList.add('mensagem-chat');
+                div.classList.add(msg.sender === 'cliente' ? 'msg-cliente' : 'msg-funcionario');
+                
+                const time = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                div.innerHTML = `${msg.text} <span class="msg-time">${time}</span>`;
+                chatArea.appendChild(div);
+            });
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+    }
+
+    function enviarMensagemChat() {
+        const input = document.getElementById('inputChatCliente');
+        const texto = input.value.trim();
+        if (!texto) return;
+
+        let todasMensagens = JSON.parse(localStorage.getItem('chatMessages')) || {};
+        if (!todasMensagens[clienteLogadoEmail]) {
+            todasMensagens[clienteLogadoEmail] = [];
+        }
+
+        const novaMsg = {
+            sender: 'cliente',
+            text: texto,
+            timestamp: new Date().toISOString(),
+            lida: false
+        };
+
+        todasMensagens[clienteLogadoEmail].push(novaMsg);
+        localStorage.setItem('chatMessages', JSON.stringify(todasMensagens));
+        
+        input.value = '';
+        renderizarMensagensChat();
+    }
+    
+    // --- LÓGICA DO BADGE (ICONE DE NOTIFICAÇÃO) ---
+    function atualizarBadgeCliente() {
+        if (!clienteLogadoEmail) return;
+        
+        let todasMensagens = JSON.parse(localStorage.getItem('chatMessages')) || {};
+        let minhasMensagens = todasMensagens[clienteLogadoEmail] || [];
+        
+        // Conta mensagens do funcionário que NÃO foram lidas
+        let naoLidas = minhasMensagens.filter(m => m.sender === 'funcionario' && !m.lida).length;
+        
+        const badges = document.querySelectorAll('.badge-cliente');
+        badges.forEach(badge => {
+            if (naoLidas > 0) {
+                badge.textContent = naoLidas;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        });
+    }
+
+    function esconderSplash() {
+        document.getElementById('splash-screen').style.opacity = '0';
+        document.getElementById('splash-screen').style.visibility = 'hidden';
+        setTimeout(() => { 
+            document.getElementById('splash-screen').style.display = 'none'; 
+            document.body.style.overflow = 'auto'; 
+            
+            const sessao = JSON.parse(localStorage.getItem('clienteSessao'));
+            if(sessao) {
+                clienteLogadoEmail = sessao.email;
+                clienteLogadoNome = sessao.nome;
+                document.getElementById('msgBemVindo').textContent = `Bem-vindo(a), ${clienteLogadoNome}!`;
+                mostrar('agendamento');
+            } else {
+                document.getElementById('login').style.opacity = '1'; 
+            }
+        }, 1000); 
+    }
+
+    window.onload = function() { setTimeout(esconderSplash, 3000); inicializarPrecos(); popularServicos(); atualizarBadgeCliente(); };
+    
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'agendamentos' || event.key === 'servicosHistorico') {
+        if (document.getElementById('statusRevisao').style.display === 'block') carregarStatusRevisaoCliente(); 
+      }
+      if (event.key === 'tabelaPrecos') { inicializarPrecos(); popularServicos(); }
+      
+      if (event.key === 'chatMessages') {
+          atualizarBadgeCliente();
+          if (document.getElementById('modal-chat').style.display === 'flex') {
+             renderizarMensagensChat();
+             marcarMensagensComoLidas(); 
+          }
+      }
+    });
+  
+  </script>
+</body>
+</html>

@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel do Funcionário - Sistema Oficina</title>
+  <link rel="icon" href="logo-driver-time.jpeg" type="image/jpeg">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    /* (Estilos mantidos e organizados) */
+    body { font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 20px; padding-bottom: 40px; /* Espaço para footer */ }
+    .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+    
+    .login-container { max-width: 400px; margin: 50px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .login-container h2 { text-align: center; color: #003366; border-bottom: none; }
+    .login-container input { width: 100%; padding: 10px; margin-top: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+    .login-container button { width: 100%; padding: 10px; margin-top: 10px; background-color: #0055cc; color: white; border: none; cursor: pointer; border-radius: 5px; }
+    .link-recuperar { display: block; text-align: center; margin-top: 10px; color: #0055cc; text-decoration: none; font-size: 0.9em; cursor: pointer; }
+    
+    h2, h3 { color: #003366; border-bottom: 2px solid #0055cc; padding-bottom: 10px; }
+    .header-painel h2 { border-bottom: none; margin: 0; font-size: 1.8em; }
+
+    .agendamento-card, .historico-card, .feedback-card { padding: 15px; margin-bottom: 15px; border-radius: 5px; }
+    .agendamento-card { border: 1px solid #ccc; border-left: 5px solid #0055cc; display: flex; flex-wrap: wrap; gap: 10px; }
+    .historico-card { border: 1px solid #dcdcdc; border-left: 5px solid #6c757d; background-color: #f8f9fa; display: flex; flex-wrap: wrap; gap: 10px; }
+    .feedback-card { border: 1px solid #e0e0e0; border-left: 5px solid #20c997; background-color: #f0fff0; }
+    
+    .info-cliente, .info-servico { flex: 1; min-width: 200px; }
+    .acoes { flex-basis: 100%; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .acoes button, .botoes-relatorio button { width: auto; padding: 8px 12px; font-size: 0.9em; border: none; color: white; border-radius: 5px; cursor: pointer; }
+    .btn-chat { background-color: #007bff; } .btn-historico { background-color: #6c757d; } .btn-concluir { background-color: #17a2b8; } .btn-em-andamento { background-color: #ffc107; color: #333; } .btn-checklist { background-color: #5bc0de; } .btn-checklist.realizado { background-color: #4cae4c; } 
+    
+    .status-badge { display: inline-block; padding: 5px 10px; border-radius: 5px; font-weight: bold; margin-left: 10px; font-size: 0.8em; }
+    .status-badge.Pendente { background-color: #fff3cd; color: #856404; }
+    .status-badge.EmAndamento { background-color: #d1ecf1; color: #0c5460; }
+    .status-badge.Concluido { background-color: #d4edda; color: #155724; }
+    
+    /* ALERTA GUINCHO */
+    .alerta-guincho { 
+        background-color: #dc3545; 
+        color: white; 
+        padding: 4px 8px; 
+        border-radius: 4px; 
+        font-weight: bold; 
+        font-size: 0.8em;
+        margin-top: 5px; 
+        display: inline-block; 
+        width: auto;           
+        animation: blink 2s infinite; 
+    }
+    @keyframes blink { 0% {opacity: 1;} 50% {opacity: 0.8;} 100% {opacity: 1;} }
+    
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: white; padding: 30px; border-radius: 8px; width: 600px; max-width: 90%; max-height: 80%; overflow-y: auto; }
+    .modal-content button { background-color: #dc3545; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 5px;}
+    .checklist-form-group { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+    .checklist-form-group textarea { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; resize: vertical; }
+    .btn-salvar-checklist { background-color: #28a745 !important; }
+    .tabela-precos-editavel { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+    .tabela-precos-editavel th, .tabela-precos-editavel td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: middle; }
+    .tabela-precos-editavel th { background-color: #f2f2f2; color: #003366; }
+    .tabela-precos-editavel input { width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    .btn-remover-servico { background-color: #dc3545 !important; color: white; width: 30px; height: 30px; padding: 0 !important; display: flex; justify-content: center; align-items: center; cursor: pointer; border-radius: 4px; }
+    
+    /* --- ESTILOS DO CHAT FUNCIONARIO --- */
+    .lista-clientes-chat { list-style: none; padding: 0; }
+    .lista-clientes-chat li {
+        padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    }
+    .lista-clientes-chat li:hover { background-color: #f0f8ff; }
+    .chat-badge { background: #dc3545; color: white; padding: 2px 6px; border-radius: 50%; font-size: 0.8em; }
+    
+    /* NOVO: Badge Inline para o botão do card */
+    .chat-badge-inline {
+        background-color: #dc3545;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 0.75em;
+        margin-left: 5px;
+        font-weight: bold;
+    }
+    
+    #chat-area-func {
+        height: 300px; border: 1px solid #ddd; border-radius: 5px; padding: 10px; overflow-y: scroll;
+        background-color: #f9f9f9; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .mensagem-chat { max-width: 80%; padding: 8px 12px; border-radius: 10px; font-size: 0.9em; line-height: 1.4; }
+    .msg-cliente { align-self: flex-start; background-color: #e0e0e0; color: #333; border-bottom-left-radius: 2px; }
+    .msg-funcionario { align-self: flex-end; background-color: #0055cc; color: white; border-bottom-right-radius: 2px; }
+    .msg-time { display: block; font-size: 0.7em; margin-top: 4px; opacity: 0.8; text-align: right; }
+    .chat-controls { display: flex; gap: 5px; }
+
+    /* --- CSS DO BADGE DE NOTIFICAÇÃO SUPERIOR --- */
+    .badge-notification {
+        background-color: #dc3545;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 0.75em;
+        position: absolute;
+        top: 5px;
+        right: 10px;
+        font-weight: bold;
+        display: none;
+        box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    }
+    
+    .btn-central-msg { position: relative; }
+
+    /* Estilo do filtro de Mês */
+    .filtro-mes-container {
+        background-color: #e9ecef;
+        padding: 10px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #ced4da;
+    }
+    .filtro-mes-container input[type="month"] {
+        padding: 6px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-family: inherit;
+    }
+
+    /* --- CSS DO RODAPÉ --- */
+    .dev-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: #e0e0e0;
+        color: #555;
+        text-align: center;
+        padding: 10px 0;
+        font-size: 0.85em;
+        border-top: 1px solid #ccc;
+        z-index: 999;
+    }
+    .dev-footer a {
+        color: #0055cc;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    .dev-footer a:hover {
+        text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container" id="telaLoginFuncionario">
+    <img src="logo oficina.jpeg" alt="Logo Driver Time" class="logo-login" style="display: block; margin: 0 auto 15px auto; width: 100%; max-width: 100%; height: auto;">
+    <h2>Acesso Restrito</h2>
+    <input type="email" id="emailFunc" placeholder="E-mail Corporativo">
+    <input type="password" id="senhaFunc" placeholder="Senha">
+    <button onclick="loginFuncionario()">Acessar Sistema</button>
+    <a class="link-recuperar" onclick="mostrarTela('recuperarSenhaFunc')">Esqueceu a senha?</a>
+    <button onclick="mostrarTela('cadastroFuncionario')" style="margin-top:15px; background-color: #777;">Cadastrar Funcionário</button>
+  </div>
+
+  <div class="login-container" id="cadastroFuncionario" style="display: none;">
+    <h2>Novo Funcionário</h2>
+    <input type="text" id="nomeCadastroFunc" placeholder="Nome Completo">
+    <input type="email" id="emailCadastroFunc" placeholder="E-mail Corporativo">
+    <input type="password" id="senhaCadastroFunc" placeholder="Senha de Acesso">
+    <input type="password" id="confirmarSenhaCadastroFunc" placeholder="Confirmar Senha">
+    <button onclick="salvarCadastroFuncionario()" style="background-color: #28a745;">Cadastrar</button>
+    <button onclick="mostrarTela('telaLoginFuncionario')" style="margin-top:10px; background-color: #777;">Voltar ao Login</button>
+  </div>
+  <div class="login-container" id="recuperarSenhaFunc" style="display: none;">
+    <h2>Recuperar Acesso</h2>
+    <input type="email" id="emailRecuperacaoFunc" placeholder="E-mail Corporativo">
+    <button onclick="recuperarSenhaFuncionario()">Recuperar Senha</button>
+    <button onclick="mostrarTela('telaLoginFuncionario')" style="margin-top:10px; background-color: #777;">Voltar</button>
+  </div>
+
+  <div id="painelFuncionario" style="display: none;">
+      <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div class="header-painel">
+                <h2>Bem-vindo(a), <span id="nomeFuncionarioLogado"></span>!</h2>
+                <p style="margin:5px 0 0 0; color:#666; font-size:0.9em;">Painel do Funcionário</p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="abrirListaChats()" class="btn-central-msg" style="background-color: #ff9800; width: auto; padding: 8px 15px;">
+                    💬 Central de Mensagens
+                    <span id="badge-msg-func" class="badge-notification">0</span>
+                </button>
+                <button onclick="abrirModalPrecos()" style="background-color: #6f42c1; width: auto; padding: 8px 15px;">Gerenciar Tabela de Valores</button>
+                <button onclick="sairFuncionario()" style="background-color: #dc3545; width: auto; padding: 8px 15px;">Sair</button>
+            </div>
+        </div>
+        
+        <h3 style="margin-top: 20px; border-top: none; padding-top: 0;">Relatórios Gerenciais</h3>
+        
+        <div class="filtro-mes-container">
+            <strong>📅 Mês de Referência:</strong>
+            <input type="month" id="filtroMesGraficos" onchange="atualizarGraficosPorMes()">
+            <span style="font-size: 0.8em; color: #666;">(Os gráficos abaixo mostram dados apenas deste mês)</span>
+        </div>
+
+        <div class="botoes-relatorio" style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <button onclick="mostrarGrafico('servicos')" class="btn-chat" style="background-color: #007bff;">Gráfico de Serviços</button>
+            <button onclick="fecharGraficos()" id="btnFecharGraficos" style="background-color: #dc3545; display: none;">Fechar Gráfico</button>
+            <button onclick="mostrarGrafico('faturamento')" class="btn-historico" style="background-color: #28a745;">Gráfico de Faturamento</button>
+        </div>
+
+        <div id="container-grafico-servicos" class="grafico-container" style="width: 100%; max-width: 700px; margin: 20px auto; display: none;">
+            <h4 style="text-align: center; margin-bottom: 10px;">Quantidade de Serviços (<span class="label-mes-grafico"></span>)</h4>
+            <canvas id="graficoServicosFunc"></canvas>
+        </div>
+        <div id="container-grafico-faturamento" class="grafico-container" style="width: 100%; max-width: 700px; margin: 20px auto; display: none;">
+            <h4 style="text-align: center; margin: 0 0 10px 0; color: #003366;">Faturamento Total (<span class="label-mes-grafico"></span>): <span id="faturamento-total" style="color: #28a745;">R$ 0,00</span></h4>
+            <canvas id="graficoFaturamentoFunc"></canvas>
+        </div>
+
+        <h3>Agendamentos Pendentes</h3>
+        <div id="lista-agendamentos"></div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 40px; border-bottom: 2px solid #6c757d; padding-bottom: 5px;">
+             <h3 style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">Histórico de Serviços Concluídos</h3>
+             <button onclick="alternarHistorico()" id="btnAlternarHistorico" style="width: auto; padding: 5px 10px; font-size: 0.8em; background-color: #6c757d;">Ocultar</button>
+        </div>
+        <div id="container-historico-completo">
+            <div style="margin-bottom: 20px; margin-top: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; background-color: #f0f0f0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <strong>Buscar:</strong>
+                <input type="text" id="termoBuscaHistorico" placeholder="Placa ou Modelo" style="padding: 8px; flex-grow: 1;">
+                <select id="tipoBuscaHistorico" style="padding: 8px;"><option value="placa">Placa</option><option value="modelo">Modelo</option></select>
+                <button onclick="buscarHistoricoPorTermo()" style="background-color: #6c757d;">Buscar</button>
+                <button onclick="carregarHistorico()" style="background-color: #bbb;">Limpar</button>
+            </div>
+            <div id="lista-historico"></div>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 40px; border-bottom: 2px solid #20c997; padding-bottom: 5px;">
+            <h3 style="border-bottom: none; margin-bottom: 0; padding-bottom: 0; border-color: #20c997;">Feedbacks dos Clientes</h3>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <input type="date" id="dataFiltroFeedback" style="padding: 5px; width: auto; font-size: 0.9em; margin-top: 0;">
+                <button onclick="filtrarFeedbacks()" style="width: auto; padding: 5px 10px; font-size: 0.8em; background-color: #6c757d;">Filtrar</button>
+                <button onclick="carregarFeedbacks()" style="width: auto; padding: 5px 10px; font-size: 0.8em; background-color: #bbb;">Limpar</button>
+            </div>
+        </div>
+        <div id="lista-feedbacks" style="margin-top: 15px;"></div>
+      </div>
+  </div>
+
+  <div class="dev-footer">
+      Contato do Desenvolvedor: <a href="mailto:warlysson832@gmail.com">warlysson832@gmail.com</a>
+  </div>
+
+  <div class="modal-overlay" id="modal-historico">
+    <div class="modal-content"><h3 id="historico-cliente-nome">Histórico</h3><div id="historico-conteudo"></div><button onclick="fecharModalHistorico()" style="margin-top: 20px;">Fechar</button></div>
+  </div>
+  
+  <div class="modal-overlay" id="modal-precos">
+    <div class="modal-content" style="width: 700px;">
+      <h3>Gerenciar Tabela de Valores</h3>
+      <div style="max-height: 350px; overflow-y: auto;">
+          <table class="tabela-precos-editavel">
+              <thead><tr><th>Serviço</th><th>Pequeno (R$)</th><th>Grande (R$)</th><th style="width: 50px;">Ações</th></tr></thead>
+              <tbody id="corpo-tabela-precos"></tbody>
+          </table>
+      </div>
+      
+      <div style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 10px;">
+          <h4 style="margin: 0 0 10px 0; font-size: 1em; color: #003366;">Adicionar Novo Serviço</h4>
+          <div style="display: flex; gap: 5px;">
+              <input type="text" id="novoServicoNome" placeholder="Nome do Serviço" style="flex: 2;">
+              <input type="number" id="novoServicoPeq" placeholder="R$ Peq." step="0.01" style="flex: 1;">
+              <input type="number" id="novoServicoGde" placeholder="R$ Gde." step="0.01" style="flex: 1;">
+              <button onclick="adicionarNovoServico()" style="background-color: #28a745; width: auto; margin-top: 0;">+</button>
+          </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+        <button onclick="salvarAlteracoesPrecos()" style="background-color: #28a745;">Salvar Alterações</button>
+        <button onclick="fecharModalPrecos()" style="background-color: #dc3545;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal-overlay" id="modal-checklist">
+    <div class="modal-content">
+      <h3>Checklist</h3>
+      <input type="hidden" id="checklist-agendamento-id">
+      <div id="checklist-fields">
+         <div class="checklist-form-group"><label>Frente</label><br><input type="radio" name="frente_status" value="OK" checked> OK <input type="radio" name="frente_status" value="Avaria"> Avaria<textarea id="frente_obs" rows="1" placeholder="Obs..."></textarea></div>
+         <div class="checklist-form-group"><label>Traseira</label><br><input type="radio" name="traseira_status" value="OK" checked> OK <input type="radio" name="traseira_status" value="Avaria"> Avaria<textarea id="traseira_obs" rows="1" placeholder="Obs..."></textarea></div>
+         <div class="checklist-form-group"><label>Lado Motorista</label><br><input type="radio" name="motorista_status" value="OK" checked> OK <input type="radio" name="motorista_status" value="Avaria"> Avaria<textarea id="motorista_obs" rows="1" placeholder="Obs..."></textarea></div>
+         <div class="checklist-form-group"><label>Lado Passageiro</label><br><input type="radio" name="passageiro_status" value="OK" checked> OK <input type="radio" name="passageiro_status" value="Avaria"> Avaria<textarea id="passageiro_obs" rows="1" placeholder="Obs..."></textarea></div>
+         <div class="checklist-form-group"><label>Motor</label><br><input type="radio" name="motor_status" value="OK" checked> OK <input type="radio" name="motor_status" value="Avaria"> Avaria<textarea id="motor_obs" rows="1" placeholder="Obs..."></textarea></div>
+      </div>
+      <button onclick="salvarChecklist()" class="btn-salvar-checklist">Salvar e Enviar Checklist</button>
+      <button onclick="fecharModalChecklist()" style="margin-left: 10px;">Cancelar</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-lista-conversas">
+    <div class="modal-content" style="width: 400px;">
+      <h3>Central de Mensagens</h3>
+      <p style="font-size:0.9em; color:#666;">Selecione um cliente para conversar:</p>
+      <ul class="lista-clientes-chat" id="lista-chats-ativos">
+          </ul>
+      <button onclick="fecharListaChats()" style="margin-top:20px; width:100%;">Fechar</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-chat-funcionario">
+    <div class="modal-content" style="width: 450px;">
+      <h3 style="margin-bottom: 5px;">Chat com Cliente</h3>
+      <p style="margin-top:0; color:#555; font-size:0.9em;" id="chat-cliente-atual-email"></p>
+      <div id="chat-area-func">
+          </div>
+      <div class="chat-controls">
+          <input type="text" id="inputChatFunc" placeholder="Digite sua resposta...">
+          <button onclick="enviarMensagemChatFunc()" style="background-color: #007bff;">Enviar</button>
+      </div>
+      <button onclick="fecharChatFunc()" class="btn-cancelar" style="margin-top: 10px; width: 100%;">Voltar</button>
+    </div>
+  </div>
+    
+
+  <script>
+    let graficoServicosFunc = null; let graficoFaturamentoFunc = null;
+    let servicosPrecos = {};
+    const ADMIN_PADRAO = { nome: "Administrador", email: "admin@oficina.com", senha: "admin123" };
+    let clienteChatAtual = null;
+    let servicosPrecosTemp = {};
+
+    const precosPadrao = { "Troca de Óleo": { pequeno: 150, grande: 250 }, "Revisão Geral": { pequeno: 450, grande: 700 }, "Alinhamento e Balanceamento": { pequeno: 120, grande: 180 }, "Manutenção de Freios": { pequeno: 200, grande: 350 }, "Inspeção Veicular": { pequeno: 100, grande: 150 }, "Troca de Pneus (Unidade)": { pequeno: 50, grande: 80 }, "Rodízio de Pneus": { pequeno: 60, grande: 90 }, "Suspensão (Troca Amortecedores)": { pequeno: 400, grande: 650 }, "Sistema de Arrefecimento": { pequeno: 180, grande: 280 }, "Troca de Correia Dentada": { pequeno: 300, grande: 500 }, "Injeção Eletrônica (Limpeza)": { pequeno: 150, grande: 220 }, "Elétrica Geral (Verificação)": { pequeno: 120, grande: 180 }, "Bateria (Troca e Verificação)": { pequeno: 80, grande: 120 }, "Ar Condicionado (Carga de Gás)": { pequeno: 250, grande: 350 }, "Ar Condicionado (Higienização)": { pequeno: 100, grande: 150 }, "Escapamento (Verificação)": { pequeno: 70, grande: 100 }, "Troca de Embreagem": { pequeno: 500, grande: 800 }, "Câmbio Manual (Revisão)": { pequeno: 250, grande: 400 }, "Câmbio Automático (Troca Fluido)": { pequeno: 600, grande: 950 }, "Funilaria (Orçamento)": { pequeno: 0, grande: 0 }, "Pintura (Orçamento)": { pequeno: 0, grande: 0 }, "Polimento e Cristalização": { pequeno: 300, grande: 500 }, "Martelinho de Ouro (Por Peça)": { pequeno: 150, grande: 250 }, "Instalação de Acessórios": { pequeno: 100, grande: 150 }, "Laudo Cautelar": { pequeno: 180, grande: 250 }, "Troca de Velas": { pequeno: 90, grande: 140 }, "Troca de Filtro de Ar": { pequeno: 50, grande: 80 }, "Troca de Filtro de Combustível": { pequeno: 60, grande: 90 }, "Troca de Filtro de Cabine": { pequeno: 70, grande: 100 }, "Verificação de Vazamentos": { pequeno: 100, grande: 160 } };
+
+    function inicializarPrecos() {
+        const precosSalvos = localStorage.getItem('tabelaPrecos');
+        if (precosSalvos) servicosPrecos = JSON.parse(precosSalvos);
+        else { servicosPrecos = JSON.parse(JSON.stringify(precosPadrao)); localStorage.setItem('tabelaPrecos', JSON.stringify(servicosPrecos)); }
+    }
+    
+    function mostrarTela(id) {
+        ['telaLoginFuncionario','cadastroFuncionario','recuperarSenhaFunc','painelFuncionario'].forEach(t => document.getElementById(t).style.display = 'none');
+        document.getElementById(id).style.display = 'block';
+    }
+
+    function salvarCadastroFuncionario() { 
+        const nome = document.getElementById('nomeCadastroFunc').value.trim();
+        const email = document.getElementById('emailCadastroFunc').value.trim();
+        const senha = document.getElementById('senhaCadastroFunc').value;
+        const confirm = document.getElementById('confirmarSenhaCadastroFunc').value;
+        if(!nome || !email || !senha) return alert("Preencha tudo");
+        if(senha !== confirm) return alert("Senhas não conferem");
+        let funcs = JSON.parse(localStorage.getItem('funcionariosCadastrados'))||[];
+        if(funcs.find(f=>f.email===email)) return alert("Email já cadastrado");
+        funcs.push({nome, email, senha}); localStorage.setItem('funcionariosCadastrados',JSON.stringify(funcs));
+        alert("Cadastrado!"); mostrarTela('telaLoginFuncionario');
+    }
+
+    function loginFuncionario() {
+        const email = document.getElementById('emailFunc').value.trim();
+        const senha = document.getElementById('senhaFunc').value;
+        const funcs = JSON.parse(localStorage.getItem('funcionariosCadastrados'))||[];
+        const found = funcs.find(f=>f.email===email && f.senha===senha);
+        const isAdmin = (email===ADMIN_PADRAO.email && senha===ADMIN_PADRAO.senha);
+        if(found||isAdmin) {
+            const nomeUser = found ? found.nome : ADMIN_PADRAO.nome;
+            document.getElementById('nomeFuncionarioLogado').textContent = nomeUser;
+            localStorage.setItem('funcSessao', JSON.stringify({ email: email, nome: nomeUser }));
+            inicializarPrecos(); mostrarTela('painelFuncionario'); carregarPainel();
+            atualizarBadgeFunc();
+        } else alert("Dados inválidos");
+    }
+
+    function recuperarSenhaFuncionario() { 
+        const email = document.getElementById('emailRecuperacaoFunc').value;
+        if(email===ADMIN_PADRAO.email) return alert("Senha: "+ADMIN_PADRAO.senha);
+        const funcs = JSON.parse(localStorage.getItem('funcionariosCadastrados'))||[];
+        const found = funcs.find(f=>f.email===email);
+        if(found) alert("Sua senha: "+found.senha); else alert("Email não encontrado");
+    }
+
+    function sairFuncionario() { 
+        localStorage.removeItem('funcSessao');
+        document.getElementById('emailFunc').value = '';
+        document.getElementById('senhaFunc').value = '';
+        mostrarTela('telaLoginFuncionario'); 
+    }
+
+    function carregarPainel() {
+      // DEFINIR O MÊS ATUAL COMO PADRÃO AO CARREGAR
+      const hoje = new Date();
+      const mesAtual = hoje.toISOString().slice(0, 7); // Formato YYYY-MM
+      document.getElementById('filtroMesGraficos').value = mesAtual;
+      
+      carregarAgendamentos(); carregarHistorico(); carregarFeedbacks(); 
+      atualizarGraficosPorMes(); // Chama os gráficos com filtro
+      
+      window.addEventListener('storage', (event) => {
+        if (['agendamentos', 'servicosHistorico', 'feedbacks'].includes(event.key)) { 
+             carregarAgendamentos(); 
+             atualizarGraficosPorMes(); 
+             carregarHistorico();
+             carregarFeedbacks();
+        }
+        
+        if (event.key === 'chatMessages') {
+            atualizarBadgeFunc();
+            // ATUALIZAÇÃO: Carregar agendamentos novamente para mostrar a notificação no botão
+            carregarAgendamentos();
+
+            if (document.getElementById('modal-lista-conversas').style.display === 'flex') {
+                renderizarListaChats();
+            }
+            if (document.getElementById('modal-chat-funcionario').style.display === 'flex' && clienteChatAtual) {
+                renderizarMensagensChatFunc(clienteChatAtual);
+                marcarMensagensComoLidasFunc(clienteChatAtual);
+            }
+        }
+      });
+    }
+
+    // Função para atualizar os gráficos quando mudar a data
+    function atualizarGraficosPorMes() {
+        const mesFiltro = document.getElementById('filtroMesGraficos').value;
+        // Atualiza Labels
+        document.querySelectorAll('.label-mes-grafico').forEach(el => el.textContent = mesFiltro.split('-').reverse().join('/'));
+        
+        if (document.getElementById('container-grafico-servicos').style.display !== 'none') {
+            renderizarGraficoServicos(mesFiltro);
+        }
+        if (document.getElementById('container-grafico-faturamento').style.display !== 'none') {
+            renderizarGraficoFaturamento(mesFiltro);
+        }
+    }
+
+    function mostrarGrafico(tipo) {
+    document.getElementById('container-grafico-servicos').style.display = 'none';
+    document.getElementById('container-grafico-faturamento').style.display = 'none';
+    
+    const mesFiltro = document.getElementById('filtroMesGraficos').value;
+
+    if (tipo === 'servicos') {
+        document.getElementById('container-grafico-servicos').style.display = 'block';
+        renderizarGraficoServicos(mesFiltro); 
+    } else if (tipo === 'faturamento') {
+        document.getElementById('container-grafico-faturamento').style.display = 'block';
+        renderizarGraficoFaturamento(mesFiltro); 
+    }
+    
+    // Faz o botão de fechar aparecer quando um gráfico é aberto
+    document.getElementById('btnFecharGraficos').style.display = 'block';
+}
+
+// Nova função para fechar os gráficos e esconder o botão
+function fecharGraficos() {
+    document.getElementById('container-grafico-servicos').style.display = 'none';
+    document.getElementById('container-grafico-faturamento').style.display = 'none';
+    document.getElementById('btnFecharGraficos').style.display = 'none';
+}
+
+    // --- CHAT ---
+    function abrirListaChats() {
+        document.getElementById('modal-lista-conversas').style.display = 'flex';
+        renderizarListaChats();
+    }
+    
+    function fecharListaChats() {
+        document.getElementById('modal-lista-conversas').style.display = 'none';
+    }
+
+    function renderizarListaChats() {
+        const listaUl = document.getElementById('lista-chats-ativos');
+        listaUl.innerHTML = '';
+        const todasMensagens = JSON.parse(localStorage.getItem('chatMessages')) || {};
+        const clientesEmails = Object.keys(todasMensagens);
+
+        if (clientesEmails.length === 0) {
+            listaUl.innerHTML = '<li style="color:#666;">Nenhuma conversa iniciada.</li>';
+            return;
+        }
+
+        clientesEmails.forEach(email => {
+            const msgs = todasMensagens[email];
+            const ultimaMsg = msgs[msgs.length - 1];
+            const naoLidas = msgs.filter(m => m.sender === 'cliente' && !m.lida).length;
+            const badge = naoLidas > 0 ? `<span class="chat-badge">${naoLidas}</span>` : '';
+
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <div style="flex-grow:1;">
+                    <strong>${email}</strong> ${badge}<br>
+                    <small style="color:#666;">${ultimaMsg.text.substring(0, 30)}...</small>
+                </div>
+                <button onclick="abrirChatFuncionario('${email}')" style="font-size:0.8em; padding:4px 8px;">Abrir</button>
+            `;
+            listaUl.appendChild(li);
+        });
+    }
+
+    function abrirChatFuncionario(emailCliente) {
+        clienteChatAtual = emailCliente;
+        document.getElementById('modal-lista-conversas').style.display = 'none';
+        document.getElementById('modal-chat-funcionario').style.display = 'flex';
+        document.getElementById('chat-cliente-atual-email').textContent = emailCliente;
+        
+        marcarMensagensComoLidasFunc(emailCliente);
+        renderizarMensagensChatFunc(emailCliente);
+        
+        // Atualiza a lista principal para remover o badge deste cliente
+        carregarAgendamentos();
+    }
+    
+    function marcarMensagensComoLidasFunc(email) {
+        let todasMensagens = JSON.parse(localStorage.getItem('chatMessages')) || {};
+        let msgs = todasMensagens[email] || [];
+        let mudou = false;
+        
+        msgs.forEach(m => {
+            if(m.sender === 'cliente' && !m.lida) {
+                m.lida = true;
+                mudou = true;
+            }
+        });
+        
+        if (mudou) {
+            localStorage.setItem('chatMessages', JSON.stringify(todasMensagens));
+            atualizarBadgeFunc();
+        }
+    }
+
+    function fecharChatFunc() {
+        document.getElementById('modal-chat-funcionario').style.display = 'none';
+        clienteChatAtual = null;
+        abrirListaChats();
+    }
+
+    function renderizarMensagensChatFunc(email) {
+        const chatArea = document.getElementById('chat-area-func');
+        chatArea.innerHTML = '';
+        
+        const todasMensagens = JSON.parse(localStorage.getItem('chatMessages')) || {};
+        const msgs = todasMensagens[email] || [];
+
+        msgs.forEach(msg => {
+            const div = document.createElement('div');
+            div.classList.add('mensagem-chat');
+            div.classList.add(msg.sender === 'cliente' ? 'msg-cliente' : 'msg-funcionario');
+            
+            const time = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            div.innerHTML = `${msg.text} <span class="msg-time">${time}</span>`;
+            chatArea.appendChild(div);
+        });
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function enviarMensagemChatFunc() {
+        const input = document.getElementById('inputChatFunc');
+        const texto = input.value.trim();
+        if (!texto || !clienteChatAtual) return;
+
+        let todasMensagens = JSON.parse(localStorage.getItem('chatMessages')) || {};
+        if (!todasMensagens[clienteChatAtual]) todasMensagens[clienteChatAtual] = [];
+
+        const novaMsg = {
+            sender: 'funcionario',
+            text: texto,
+            timestamp: new Date().toISOString(),
+            lida: false
+        };
+
+        todasMensagens[clienteChatAtual].push(novaMsg);
+        localStorage.setItem('chatMessages', JSON.stringify(todasMensagens));
+        
+        input.value = '';
+        renderizarMensagensChatFunc(clienteChatAtual);
+    }
+    
+    function atualizarBadgeFunc() {
+        let todasMensagens = JSON.parse(localStorage.getItem('chatMessages')) || {};
+        let totalNaoLidas = 0;
+        
+        Object.values(todasMensagens).forEach(listaMsgs => {
+            totalNaoLidas += listaMsgs.filter(m => m.sender === 'cliente' && !m.lida).length;
+        });
+        
+        const badge = document.getElementById('badge-msg-func');
+        if (badge) {
+            if (totalNaoLidas > 0) {
+                badge.textContent = totalNaoLidas;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    }
+
+    // --- MANIPULAÇÃO DE PREÇOS ---
+    function abrirModalPrecos() {
+        inicializarPrecos();
+        servicosPrecosTemp = JSON.parse(JSON.stringify(servicosPrecos));
+        renderizarTabelaModal();
+        document.getElementById('modal-precos').style.display = 'flex';
+    }
+    
+    function renderizarTabelaModal() {
+        const tbody = document.getElementById('corpo-tabela-precos'); 
+        tbody.innerHTML = '';
+        const servicosOrdenados = Object.keys(servicosPrecosTemp).sort();
+        
+        servicosOrdenados.forEach(serv => {
+            const p = servicosPrecosTemp[serv];
+            tbody.innerHTML += `
+                <tr>
+                    <td>${serv}</td>
+                    <td><input type="number" step="0.01" class="p-peq" data-s="${serv}" value="${p.pequeno}"></td>
+                    <td><input type="number" step="0.01" class="p-gde" data-s="${serv}" value="${p.grande}"></td>
+                    <td style="text-align:center;">
+                        <button class="btn-remover-servico" onclick="removerServico('${serv}')" title="Remover Serviço">🗑️</button>
+                    </td>
+                </tr>`;
+        });
+    }
+    
+    function fecharModalPrecos() { 
+        document.getElementById('modal-precos').style.display = 'none'; 
+        servicosPrecosTemp = {}; 
+    }
+    
+    function salvarAlteracoesPrecos() {
+        document.querySelectorAll('.p-peq').forEach(i => {
+             if(servicosPrecosTemp[i.dataset.s]) servicosPrecosTemp[i.dataset.s].pequeno = parseFloat(i.value);
+        });
+        document.querySelectorAll('.p-gde').forEach(i => {
+             if(servicosPrecosTemp[i.dataset.s]) servicosPrecosTemp[i.dataset.s].grande = parseFloat(i.value);
+        });
+
+        servicosPrecos = JSON.parse(JSON.stringify(servicosPrecosTemp));
+        localStorage.setItem('tabelaPrecos', JSON.stringify(servicosPrecos));
+        
+        alert("Alterações salvas com sucesso!"); 
+        fecharModalPrecos();
+    }
+
+    function adicionarNovoServico() {
+        const nome = document.getElementById('novoServicoNome').value.trim();
+        const peq = parseFloat(document.getElementById('novoServicoPeq').value);
+        const gde = parseFloat(document.getElementById('novoServicoGde').value);
+
+        if (!nome) { alert('Digite o nome do serviço.'); return; }
+        if (isNaN(peq) || isNaN(gde)) { alert('Preencha os valores corretamente.'); return; }
+        
+        document.querySelectorAll('.p-peq').forEach(i => {
+             if(servicosPrecosTemp[i.dataset.s]) servicosPrecosTemp[i.dataset.s].pequeno = parseFloat(i.value);
+        });
+        document.querySelectorAll('.p-gde').forEach(i => {
+             if(servicosPrecosTemp[i.dataset.s]) servicosPrecosTemp[i.dataset.s].grande = parseFloat(i.value);
+        });
+
+        if (servicosPrecosTemp[nome]) { alert('Este serviço já existe na lista!'); return; }
+
+        servicosPrecosTemp[nome] = { pequeno: peq, grande: gde };
+        
+        document.getElementById('novoServicoNome').value = '';
+        document.getElementById('novoServicoPeq').value = '';
+        document.getElementById('novoServicoGde').value = '';
+
+        renderizarTabelaModal();
+    }
+
+    function removerServico(nomeServico) {
+        if (confirm(`Remover "${nomeServico}" da lista? (Necessário clicar em Salvar depois)`)) {
+            document.querySelectorAll('.p-peq').forEach(i => {
+                 if(servicosPrecosTemp[i.dataset.s]) servicosPrecosTemp[i.dataset.s].pequeno = parseFloat(i.value);
+            });
+            document.querySelectorAll('.p-gde').forEach(i => {
+                 if(servicosPrecosTemp[i.dataset.s]) servicosPrecosTemp[i.dataset.s].grande = parseFloat(i.value);
+            });
+
+            delete servicosPrecosTemp[nomeServico];
+            renderizarTabelaModal();
+        }
+    }
+    
+    function alternarHistorico() {
+        const c = document.getElementById('container-historico-completo'); const b = document.getElementById('btnAlternarHistorico');
+        if(c.style.display==='none'){c.style.display='block';b.textContent='Ocultar';}else{c.style.display='none';b.textContent='Mostrar';}
+    }
+
+    function renderizarGraficoServicos(mesFiltro) { 
+        // Pega todos (pendentes e concluídos)
+        const all = [...(JSON.parse(localStorage.getItem('agendamentos'))||[]), ...(JSON.parse(localStorage.getItem('servicosHistorico'))||[])];
+        
+        // Filtra pelo mês selecionado (se mesFiltro existir)
+        const filtrados = mesFiltro ? all.filter(item => item.data && item.data.startsWith(mesFiltro)) : all;
+
+        const ctx = document.getElementById('graficoServicosFunc').getContext('2d');
+        const counts = {}; 
+        filtrados.forEach(a=>counts[a.servico]=(counts[a.servico]||0)+1);
+        
+        if(graficoServicosFunc) graficoServicosFunc.destroy();
+        graficoServicosFunc = new Chart(ctx, { type: 'bar', data: { labels: Object.keys(counts), datasets: [{ label: 'Serviços', data: Object.values(counts), backgroundColor: 'rgba(0,123,255,0.7)' }] }, options: { indexAxis: 'y', scales: { x: { ticks: { precision: 0, callback: value => Number(value).toFixed(0) } } } } });
+    }
+    
+    function renderizarGraficoFaturamento(mesFiltro) {
+        const hist = JSON.parse(localStorage.getItem('servicosHistorico'))||[];
+        
+        // Filtra pelo mês selecionado
+        const filtrados = mesFiltro ? hist.filter(item => item.data && item.data.startsWith(mesFiltro)) : hist;
+
+        const ctx = document.getElementById('graficoFaturamentoFunc').getContext('2d');
+        const fat = {}; let total = 0;
+        
+        filtrados.forEach(h => { const p = h.preco||0; fat[h.servico]=(fat[h.servico]||0)+p; total+=p; });
+        
+        document.getElementById('faturamento-total').textContent =
+            total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+        if(graficoFaturamentoFunc) graficoFaturamentoFunc.destroy();
+        graficoFaturamentoFunc = new Chart(ctx,{type:'bar',data:{labels:Object.keys(fat),datasets:[{label:'Faturamento',data:Object.values(fat),backgroundColor:'#28A745'}]},options:{plugins:{tooltip:{callbacks:{label:(context)=>context.raw.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}}},scales:{y:{ticks:{callback:(value)=>value.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}}}}});
+    }
+
+    function carregarAgendamentos() {
+        const div = document.getElementById('lista-agendamentos'); div.innerHTML = '';
+        const agends = (JSON.parse(localStorage.getItem('agendamentos'))||[]).filter(a=>a.status!=='Concluido');
+        if(!agends.length) return div.innerHTML='<p>Sem agendamentos.</p>';
+        
+        // Pega todas as mensagens para calcular os badges
+        const allMsgs = JSON.parse(localStorage.getItem('chatMessages')) || {};
+
+        agends.forEach(a => {
+            const checklistClass = (a.checklist&&a.checklist.realizado) ? 'btn-checklist realizado' : 'btn-checklist';
+            
+            let guinchoHtml = '';
+            if(a.precisaGuincho) {
+                guinchoHtml = '<div class="alerta-guincho">🚨 GUINCHO SOLICITADO</div>';
+            }
+            
+            const obsHtml = a.observacoes ? `<div style="margin-top:8px; padding:5px; background:#fff3cd; font-size:0.9em; border-radius:3px;"><strong>Obs do Cliente:</strong> <i>${a.observacoes}</i></div>` : '';
+            const kmDisplay = a.km ? `(${a.km} km)` : '';
+            const valorDisplay = a.preco ? `<p><strong>Valor:</strong> <span style="color:#28a745; font-weight:bold;">R$ ${a.preco.toFixed(2)}</span></p>` : '';
+
+            // --- LÓGICA DO BADGE ESPECÍFICO DESTE CLIENTE ---
+            const clientMsgs = allMsgs[a.clienteEmail] || [];
+            const unreadCount = clientMsgs.filter(m => m.sender === 'cliente' && !m.lida).length;
+            const badgeHtml = unreadCount > 0 ? `<span class="chat-badge-inline">${unreadCount}</span>` : '';
+
+            div.innerHTML += `<div class="agendamento-card">
+                <div class="info-cliente"><strong>${a.cliente}</strong><br>${a.veiculo} - ${a.placa} ${kmDisplay} ${guinchoHtml} ${obsHtml}</div>
+                <div class="info-servico"><strong>${a.servico}</strong><br>${valorDisplay}${a.data} às ${a.hora}<br>Status: <span class="status-badge ${a.status.replace(/\s/g,'')}">${a.status}</span></div>
+                <div class="acoes">
+                    <button class="btn-chat" onclick="abrirChatFuncionario('${a.clienteEmail}')">Chat Direto${badgeHtml}</button>
+                    <button class="btn-historico" onclick="verHistorico('${a.cliente}')">Histórico</button>
+                    <button class="${checklistClass}" onclick="abrirModalChecklist(${a.id})">Checklist</button>
+                    <button class="btn-em-andamento" onclick="atualizarStatus(${a.id}, 'Em Andamento')">Andamento</button>
+                    <button class="btn-concluir" onclick="concluirServico(${a.id})">Concluir</button>
+                </div>
+            </div>`;
+        });
+    }
+
+    function carregarHistorico(filtrado=null) {
+        const hist = filtrado || JSON.parse(localStorage.getItem('servicosHistorico'))||[];
+        const div = document.getElementById('lista-historico'); div.innerHTML = '';
+        if(!hist.length) return div.innerHTML='<p>Vazio.</p>';
+        hist.slice().reverse().forEach(h => {
+             const kmDisplay = h.km ? `(${h.km} km)` : '';
+             div.innerHTML += `<div class="historico-card"><div class="info-cliente"><strong>${h.cliente}</strong><br>${h.veiculo} - ${h.placa} ${kmDisplay}</div><div class="info-servico">${h.servico} - R$ ${h.preco.toFixed(2)}<br>Concluído em ${h.data}</div></div>`;
+        });
+    }
+    
+    function buscarHistoricoPorTermo() {
+        const termo = document.getElementById('termoBuscaHistorico').value.trim().toUpperCase();
+        const tipo = document.getElementById('tipoBuscaHistorico').value;
+        const all = JSON.parse(localStorage.getItem('servicosHistorico'))||[];
+        const res = all.filter(s => (tipo==='placa' && s.placa && s.placa.includes(termo)) || (tipo==='modelo' && s.veiculo && s.veiculo.toUpperCase().includes(termo)));
+        carregarHistorico(res);
+    }
+    
+    function filtrarFeedbacks() {
+        const data = document.getElementById('dataFiltroFeedback').value;
+        carregarFeedbacks(data);
+    }
+
+    function carregarFeedbacks(dataFiltro = null) {
+        let feeds = JSON.parse(localStorage.getItem('feedbacks')) || [];
+        const div = document.getElementById('lista-feedbacks'); 
+        div.innerHTML = '';
+        
+        if (dataFiltro) {
+            feeds = feeds.filter(f => f.data.startsWith(dataFiltro));
+        }
+
+        if(feeds.length === 0) {
+            div.innerHTML = '<p style="color:#666; font-style:italic;">Nenhum feedback encontrado.</p>';
+        } else {
+            feeds.slice().reverse().forEach(f => {
+                const dataFormatada = new Date(f.data).toLocaleDateString();
+                div.innerHTML += `
+                <div class="feedback-card">
+                    <p><strong>${f.clienteEmail}</strong> - Serviço: ${f.servicoNome} <span style="float:right; font-size:0.8em; color:#666;">${dataFormatada}</span></p>
+                    <p style="font-style:italic; margin-top:5px;">"${f.texto}"</p>
+                </div>`;
+            });
+        }
+    }
+
+    function verHistorico(nome) {
+        const h = (JSON.parse(localStorage.getItem('servicosHistorico'))||[]).filter(s=>s.cliente===nome);
+        const div = document.getElementById('historico-conteudo'); div.innerHTML = h.length ? '' : '<p>Nada encontrado</p>';
+        h.forEach(i => div.innerHTML+=`<p>${i.data} - ${i.servico} (${i.status})</p>`);
+        document.getElementById('modal-historico').style.display = 'flex';
+    }
+    function fecharModalHistorico() { document.getElementById('modal-historico').style.display = 'none'; }
+
+    function abrirModalChecklist(id) { 
+        document.getElementById('checklist-agendamento-id').value=id; 
+        document.querySelectorAll('#checklist-fields input[type="radio"]').forEach(r => r.checked = false);
+        document.querySelectorAll('#checklist-fields input[value="OK"]').forEach(r => r.checked = true);
+        document.querySelectorAll('#checklist-fields textarea').forEach(t => t.value = '');
+        document.getElementById('modal-checklist').style.display='flex'; 
+    }
+    function fecharModalChecklist() { document.getElementById('modal-checklist').style.display='none'; }
+   
+    function salvarChecklist() {
+        const id = parseInt(document.getElementById('checklist-agendamento-id').value);
+        let agends = JSON.parse(localStorage.getItem('agendamentos'));
+        const idx = agends.findIndex(a=>a.id===id);
+        
+        if(idx!==-1) {
+            const getStatus = (name) => document.querySelector(`input[name="${name}"]:checked`).value;
+            const getObs = (id) => document.getElementById(id).value;
+
+            const checklistData = {
+                realizado: true,
+                frente: { status: getStatus('frente_status'), obs: getObs('frente_obs') },
+                traseira: { status: getStatus('traseira_status'), obs: getObs('traseira_obs') },
+                motorista: { status: getStatus('motorista_status'), obs: getObs('motorista_obs') },
+                passageiro: { status: getStatus('passageiro_status'), obs: getObs('passageiro_obs') },
+                motor: { status: getStatus('motor_status'), obs: getObs('motor_obs') }
+            };
+
+            agends[idx].checklist = checklistData; 
+            localStorage.setItem('agendamentos', JSON.stringify(agends));
+            alert("Checklist Enviado!"); fecharModalChecklist(); carregarAgendamentos();
+        }
+    }
+
+    function atualizarStatus(id, st) {
+        let agends = JSON.parse(localStorage.getItem('agendamentos'));
+        const a = agends.find(x=>x.id===id); if(a){ a.status=st; localStorage.setItem('agendamentos',JSON.stringify(agends)); carregarAgendamentos();}
+    }
+    function concluirServico(id) {
+        if(!confirm("Concluir? Isso moverá o serviço para o histórico.")) return;
+        let agends = JSON.parse(localStorage.getItem('agendamentos'));
+        let hist = JSON.parse(localStorage.getItem('servicosHistorico'))||[];
+        const idx = agends.findIndex(a=>a.id===id);
+        if(idx!==-1) {
+            const item = agends.splice(idx,1)[0]; 
+            item.status='Concluido';
+            hist.push(item);
+            localStorage.setItem('agendamentos',JSON.stringify(agends));
+            localStorage.setItem('servicosHistorico',JSON.stringify(hist));
+            carregarAgendamentos(); carregarHistorico(); 
+            atualizarGraficosPorMes();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { 
+        const sessao = JSON.parse(localStorage.getItem('funcSessao'));
+        if(sessao) {
+            document.getElementById('nomeFuncionarioLogado').textContent = sessao.nome;
+            inicializarPrecos(); 
+            mostrarTela('painelFuncionario'); 
+            carregarPainel();
+            atualizarBadgeFunc();
+        } else {
+            mostrarTela('telaLoginFuncionario'); 
+        }
+    });
+  </script>
+</body>
+</html>
